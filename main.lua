@@ -3,7 +3,8 @@ webhook_url = ""
 autobuy = false
 autoSell = false
 waitTimeSell = 0
-
+toCollect = {}
+toCollectGear = {}
 
 tw = game:GetService('TweenService')
 
@@ -74,8 +75,6 @@ if game.CoreGui:FindFirstChild('LuxtLibGrow a Garden') then
     game.CoreGui['LuxtLibGrow a Garden']:Destroy()
 end
 
-toCollect = {}
-
 local Luxtl = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"))()
 
 local Luxt = Luxtl.CreateWindow("Grow a Garden", 6105620301)
@@ -87,7 +86,8 @@ local cf = creditsTab:Section("Main credit")
 
 cf:Credit("KotdemontoK (KDT) | Codding of script")
 local ff = Examples:Section("AutoBuy")
-local ff1 = Examples:Section("AutoBuy List")
+local ff1 = Examples:Section("AutoBuy Seeds List")
+local ff2 = Examples:Section("AutoBuy Gears List")
 
 ff:Button("Collect all", function()
     collect()
@@ -138,6 +138,27 @@ for _,v in ipairs(game.Players.LocalPlayer.PlayerGui.Seed_Shop.Frame.ScrollingFr
         end)
     end
 end
+
+for _,v in ipairs(game.Players.LocalPlayer.PlayerGui.Gear_Shop.Frame.ScrollingFrame:GetChildren()) do
+    if #v:GetChildren() > 0 then
+        toCollectGear[v.Name] = false
+        ff2:Toggle('Autobuy a '..v.Name, function(isToggled)
+            print("Autobuy a "..v.Name.." is",isToggled)
+            toCollectGear[v.Name] = isToggled
+            if #webhook_url > 0 then
+                txt = "**```"
+                for i,v in pairs(toCollectGear) do
+                    if v then
+                        txt = txt..i.."\n"
+                    end 
+                end
+                if #txt == 5 then txt = txt.."All\n" end
+                txt = txt.."```**"
+                sendEmbedNotification(webhook_url,'Autobuy Function','Autobuy list is changed:\n'..txt..'')
+            end
+        end)
+    end
+end
 function detectStock(txt)
     if txt == 'NO STOCK' then return false else return true end    
 end
@@ -156,21 +177,34 @@ function autocollect()
     end
 end
 
-while wait() do
-    if autobuy then
-        for _,v in ipairs(game.Players.LocalPlayer.PlayerGui.Seed_Shop.Frame.ScrollingFrame:GetChildren()) do
-            if #v:GetChildren() > 0 then
-                if toCollect[v.Name] then
-                    if detectStock(v.Main_Frame.Cost_Text.text) then
-                        game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(v.Name)
-
-                        if #webhook_url > 0 then
-                            sendEmbedNotification(webhook_url, "Autobuy log", 'Autobuyed a **`'..v.Name.."`** on **"..game.Players.LocalPlayer.DisplayName.."**!")
-                        end
-                    end
+function autoBuySeeds()
+    for _,v in ipairs(game.Players.LocalPlayer.PlayerGui.Seed_Shop.Frame.ScrollingFrame:GetChildren()) do
+        if #v:GetChildren() > 0 then
+            if toCollect[v.Name] then
+                if detectStock(v.Main_Frame.Cost_Text.text) then
+                    game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(v.Name)
                 end
             end
         end
+    end
+end
+
+function autoBuyGears()
+    for _,v in ipairs(game.Players.LocalPlayer.PlayerGui.Gear_Shop.Frame.ScrollingFrame:GetChildren()) do
+        if #v:GetChildren() > 0 then
+            if toCollectGear[v.Name] then
+                if detectStock(v.Main_Frame.Cost_Text.text) then
+                    game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(v.Name)
+                end
+            end
+        end
+    end
+end
+
+while wait() do
+    if autobuy then
+        autoBuySeeds()
+        autoBuyGears()
     end
     autocollect()
 end
